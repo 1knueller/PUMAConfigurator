@@ -11,10 +11,11 @@ namespace PUMAConfigurator
     {
         public static Dictionary<string, CsvType> DIC = new Dictionary<string, CsvType>()
         {
-            { "L",CsvType.stl},
-            { "C",CsvType.config},
-            { "M",CsvType.md},
-            { "N",CsvType.nonprintedpart},
+            { "L",CsvType.STL},
+            { "C",CsvType.Configuration},
+            { "M",CsvType.Module},
+            { "N",CsvType.NonPrintedPart},
+            { "F",CsvType.FilamentDensity},
         };
     }
 }

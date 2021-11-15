@@ -10,16 +10,23 @@ namespace PUMAConfigurator
 {
     public class PumaObject
     {
+        public static List<PumaObject> Pumas { get; set; } = new List<PumaObject>();
+
         public PumaObject()
         {
-
+            Pumas.Add(this);
         }
+
         public PumaObject(string file)
         {
             ID = Path.GetFileName(file);
             var type = ID.Substring(0, 1).ToUpperInvariant();
 
+            if (!CSVTYPEDIC.DIC.ContainsKey(type))
+                return;
+
             CsvType = CSVTYPEDIC.DIC[type];
+            Pumas.Add(this);
         }
 
         public string csvpath { get; set; }
@@ -28,11 +35,9 @@ namespace PUMAConfigurator
 
         public CsvType CsvType { get; set; }
 
-        public int Quantity { get; set; }
-
         public string Descr { get; set; }
         public string Descr2 { get; set; }
 
-        public List<PumaObject> BOMSTRUCT = new List<PumaObject>();
+        public double Weight { get; set; }
     }
 }

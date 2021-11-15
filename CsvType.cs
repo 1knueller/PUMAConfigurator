@@ -2,9 +2,10 @@
 {
     public enum CsvType
     {
-        stl,
-        config,
-        md,
-        nonprintedpart
+        STL,
+        NonPrintedPart,
+        Configuration,
+        Module,
+        FilamentDensity
     }
 }

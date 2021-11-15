@@ -26,170 +26,189 @@ namespace PUMAConfigurator
             base.OnLoad(e);
         }
 
-        private void button1_Click(object sender, EventArgs e)
-        {
-            LoadCSVs();
-        }
-
-        private void button2_Click(object sender, EventArgs e)
-        {
-            SaveAsCsv();
-        }
-
-        private void LoadExcel()
-        {
-            var csvpath = @"F:\src\mypumaconfigurator\PUMAConfigurator\PUMA_Bill_of_Materials.xls";
-        }
+        string x = "SNMC";
 
         private void LoadCSVs()
         {
             var csvpath = Form1.csvpath;
-            var files = Directory.EnumerateFiles(csvpath).ToArray();
-            try
+            var files = Directory.EnumerateFiles(csvpath)
+                .OrderBy(fp => x.IndexOf(Path.GetFileName(fp)
+                    .Substring(0, 1).ToUpperInvariant())).ToArray();
+            PumaObject.Pumas.Clear();
+
+            foreach (var file in files)
             {
-                foreach (var file in files)
+                var filePuma = new PumaObject(Path.GetFileNameWithoutExtension(file));
+                using var parser = new TextFieldParser(file);
+                parser.TextFieldType = FieldType.Delimited;
+                parser.SetDelimiters("\t");
+                int i = 0;
+
+                if (filePuma.CsvType == CsvType.STL)
                 {
-                    var PUMA = new PumaObject(file);
-                    using var parser = new TextFieldParser(file);
-                    parser.TextFieldType = FieldType.Delimited;
-                    parser.SetDelimiters("\t");
-                    int i = 0;
+                    PumaObject stlPartCollection = null;
 
-                    if (PUMA.CsvType == CsvType.stl)
+                    while (!parser.EndOfData)
                     {
-                        PumaObject innerPO = null;
-
-                        while (!parser.EndOfData)
+                        string[] fields = parser.ReadFields();
+                        if (i != 0
+                            && fields.Length > 1
+                            && fields[1] == "Time_Hr")
                         {
-                            string[] fields = parser.ReadFields();
-                            if (i != 0
-                                && fields.Length > 1
-                                && fields[1] == "Time_Hr")
-                            {
-                                innerPO = new PumaObject() { ID = fields[0], CsvType = CsvType.stl };
-                                PUMA.BOMSTRUCT.Add(innerPO);
-                            }
-                            if (i != 0
-                                && innerPO != null
-                                && fields[1].EndsWith("stl"))
-                            {
-                                innerPO.BOMSTRUCT.Add(new PumaObject() { ID = fields[0], CsvType = CsvType.stl });
-                            }
-
-                            i++;
+                            stlPartCollection = new PumaObject() { ID = fields[0], CsvType = CsvType.STL };
                         }
-                    }
-                    if (PUMA.CsvType == CsvType.config)
-                    {
-                        // read 00 for name
-                        // then everything in 2nd col that is not empty and after 'Module'
-                        // thats the struct
-                        bool modules = false;
-                        while (!parser.EndOfData)
+                        if (i != 0
+                            && stlPartCollection != null
+                            && fields[0].EndsWith("stl"))
                         {
-                            //Processing row
-                            string[] fields = parser.ReadFields();
-                            if (fields.Length <= 2)
-                            {
-                                break;
-                            }
-                            if (i == 0)
-                            {
-                                PUMA.Descr = fields[0];
-                            }
-                            if (i == 1)
-                            {
-                                PUMA.Descr2 = fields[0];
-                            }
-                            if (modules)
-                            {
-                                var X = fields[0];
-                                PUMA.BOMSTRUCT.Add(new PumaObject() { ID = X });
-                            }
-                            if (fields[1] == "Module")
-                            {
-                                modules = true;
-                            }
+                            new PumaObject() { ID = fields[0], CsvType = CsvType.STL };
 
-                            i++;
-                        }
-                    }
-                    if (PUMA.CsvType == CsvType.nonprintedpart)
-                    {
-                    }
-                    if (PUMA.CsvType == CsvType.md)
-                    {
-                        PumaObject innerPO = null;
-                        bool model = false;
-                        bool npp = false;
-                        while (!parser.EndOfData)
-                        {
-                            string[] fields = parser.ReadFields();
-                            if (i == 0)
-                            {
-                                PUMA.Descr = fields[0];
-                            }
-                            if (npp)
-                            {
-                                int num = 0;
-                                if (int.TryParse(fields[5], out num))
+                            BomStruct.BomStructs.Add(
+                                new BomStruct()
                                 {
-                                    innerPO = new PumaObject() { ID = fields[0], CsvType = CsvType.nonprintedpart, Quantity = num };
-                                    PUMA.BOMSTRUCT.Add(innerPO);
-                                }
-                                else
-                                    continue;
-                            }
-                            if (!npp
-                                && fields.Length > 0
-                                && fields[0] == "Non-Printed Parts (NPP)")
-                            {
-                                npp = true;
-                            }
-                            if (!npp
-                                && model)
-                            {
-                                int num = 0;
-                                if (fields.Length < 5)
-                                    continue;
-                                if (int.TryParse(fields[5], out num))
-                                {
-                                    innerPO = new PumaObject() { ID = fields[0], CsvType = CsvType.stl, Quantity = num };
-                                    PUMA.BOMSTRUCT.Add(innerPO);
-                                }
-                                else
-                                    continue;
-                            }
-
-                            if (!npp
-                                && model == false
-                                && i != 0
-                                && fields.Length > 0
-                                && fields[0] == "Model")
-                            {
-                                model = true;
-
-                                //innerPO = new PumaObject() { ID = fields[0], CsvType = CsvType.stl };
-                                //PUMA.BOMSTRUCT.Add(innerPO);
-                            }
-                            //if (i != 0
-                            //    && innerPO != null
-                            //    && fields[1].EndsWith("stl"))
-                            //{
-                            //    innerPO.BOMSTRUCT.Add(new PumaObject() { ID = fields[0], CsvType = CsvType.stl });
-                            //}
-
-                            i++;
+                                    ParentID = stlPartCollection.ID,
+                                    ChildID = fields[0]
+                                });
                         }
+
+                        i++;
+                    }
+                }
+                if (filePuma.CsvType == CsvType.Configuration)
+                {
+                    bool modules = false;
+                    while (!parser.EndOfData)
+                    {
+                        string[] fields = parser.ReadFields();
+                        if (fields.Length <= 2)
+                        {
+                            break;
+                        }
+                        if (i == 0)
+                        {
+                            filePuma.Descr = fields[0];
+                        }
+                        if (i == 1)
+                        {
+                            filePuma.Descr2 = fields[0];
+                        }
+                        if (modules && !string.IsNullOrWhiteSpace(fields[1]))
+                        {
+                            var partId = fields[1];
+
+                            BomStruct.AddBomStruct(new BomStruct()
+                            {
+                                ParentID = filePuma.ID,
+                                ChildID = "MD_"+fields[1],
+                                Qt = 1,
+                            });
+                        }
+                        if (!modules && fields[1] == "Module")
+                        {
+                            modules = true;
+                        }
+
+                        i++;
+                    }
+                }
+                if (filePuma.CsvType == CsvType.NonPrintedPart)
+                {
+                    PumaObject innerPO = null;
+                    bool contentStarted = false;
+                    while (!parser.EndOfData)
+                    {
+                        string[] fields = parser.ReadFields();
+                        if (contentStarted)
+                        {
+                            if (fields.Length < 3)
+                                continue;
+                            double.TryParse(fields[2], out double weight);
+
+                            innerPO = new PumaObject()
+                            {
+                                ID = fields[0],
+                                Descr = fields[1],
+                                CsvType = CsvType.NonPrintedPart,
+                                Weight = weight,
+                            };
+                        }
+                        if (!contentStarted
+                            && fields[0] == "Length of threaded shaft")
+                        {
+                            contentStarted = true;
+                        }
+
+                        i++;
+                    }
+                }
+                if (filePuma.CsvType == CsvType.Module)
+                {
+                    bool model = false;
+                    bool npp = false;
+                    while (!parser.EndOfData)
+                    {
+                        string[] fields = parser.ReadFields();
+                        if (i == 0)
+                        {
+                            filePuma.Descr = fields[0];
+                        }
+                        if (npp)
+                        {
+                            int num = 0;
+                            if (int.TryParse(fields[5], out num))
+                            {
+                                BomStruct.AddBomStruct(new BomStruct()
+                                {
+                                    ParentID = filePuma.ID,
+                                    ChildID = fields[0],
+                                    Qt = num,
+                                });
+                            }
+                            else
+                                continue;
+                        }
+                        if (!npp
+                            && fields.Length > 0
+                            && fields[0] == "Non-Printed Parts (NPP)")
+                        {
+                            npp = true;
+                        }
+                        if (!npp
+                            && model)
+                        {
+                            if (fields.Length < 5)
+                                continue;
+                            if (int.TryParse(fields[5], out int num))
+                            {
+                                BomStruct.AddBomStruct(new BomStruct()
+                                {
+                                    ParentID = filePuma.ID,
+                                    ChildID = fields[0],
+                                    Qt = num,
+                                });
+                            }
+                            else
+                                continue;
+                        }
+
+                        if (!npp
+                            && model == false
+                            && i != 0
+                            && fields.Length > 0
+                            && fields[0] == "Model")
+                        {
+                            model = true;
+                        }
+
+                        i++;
                     }
                 }
             }
-            catch (System.IndexOutOfRangeException e)
-            {
-            }
+
+            this.dataGridView1.DataSource = PumaObject.Pumas;
         }
 
-        public static void SaveAsCsv()
+        public static void Excel2csv()
         {
             System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
             using var stream = new FileStream(excelfilename, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
@@ -232,6 +251,30 @@ namespace PUMAConfigurator
                 }
 
                 File.WriteAllText(Path.Combine(csvpath, $"{table.TableName}.csv"), csvContent.ToString());
+            }
+        }
+
+        private void excel2csvtoolStripButton1_Click(object sender, EventArgs e)
+        {
+            Excel2csv();
+        }
+
+        private void loadcsvtoolStripButton2_Click(object sender, EventArgs e)
+        {
+            LoadCSVs();
+        }
+
+        private void rowstatechanged(object sender, DataGridViewRowStateChangedEventArgs e)
+        {
+            if (e.StateChanged == DataGridViewElementStates.Selected)
+            {
+                var R = e.Row;
+                if (R.DataBoundItem is PumaObject po)
+                {
+                    var Y = BomStruct.GetItemTree(po.ID);
+                    var STR = string.Join(Environment.NewLine, Y.Select(m => m.ToString()));
+                    this.textBox1.Text = STR;
+                }
             }
         }
     }
