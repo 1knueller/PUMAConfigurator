@@ -1,4 +1,6 @@
 ﻿using Microsoft.VisualBasic.FileIO;
+using PUMAConfigurator.Domain;
+using PUMAConfigurator.Model;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -8,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace PUMAConfigurator
 {
-    public class PumaObject
+    public class PumaObject : IComparable
     {
         public static List<PumaObject> Pumas { get; set; } = new List<PumaObject>();
 
@@ -29,11 +31,24 @@ namespace PUMAConfigurator
             Pumas.Add(this);
         }
 
-        public string csvpath { get; set; }
+        public static void SortPumas()
+        {
+            Pumas.Sort();
+        }
+
+        public int CompareTo(object obj)
+        {
+            PumaObject other = obj as PumaObject;
+            int csvTypeCompare = CsvType.CompareTo(other?.CsvType);
+            if (csvTypeCompare == 0)
+                return ID.CompareTo(other?.ID);
+
+            return csvTypeCompare;
+        }
 
         public string ID { get; set; }
 
-        public CsvType CsvType { get; set; }
+        public ECsvType CsvType { get; set; }
 
         public string Descr { get; set; }
         public string Descr2 { get; set; }

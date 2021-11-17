@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace PUMAConfigurator
+namespace PUMAConfigurator.Model
 {
     public class BomStruct
     {
@@ -31,7 +31,7 @@ namespace PUMAConfigurator
 
         public override string ToString()
         {
-            return $"{ParentID}\t{ChildID}\t{Qt}";
+            return $"{ParentID}\t{Qt}\t{ChildID}";
         }
     }
 }
